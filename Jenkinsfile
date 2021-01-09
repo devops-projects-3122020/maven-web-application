@@ -1,6 +1,6 @@
 node
 {
-    properties([buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '5', daysToKeepStr: '', numToKeepStr: '5')), pipelineTriggers([pollSCM('5 * * * *')])])
+    properties([buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '5', daysToKeepStr: '', numToKeepStr: '5')), pipelineTriggers([pollSCM('* * * * *')])])
     def MvnHome = tool name: "maven3.6.3"
     stage('git pull')
     {
@@ -14,7 +14,7 @@ node
     {
         sshagent(['25c01b08-8d43-46c4-a338-19a2e21497c3'])
         {
-            sh "scp -o StrictHostKeyChecking=no target/maven-web-application.war ec2-user@3.134.79.104:/opt/apache-tomcat-9.0.41/webapps/"
+            sh "scp -o StrictHostKeyChecking=no target/maven-web-application.war ec2-user@172.31.45.14:/opt/apache-tomcat-9.0.41/webapps/"
         }
     }
 }
