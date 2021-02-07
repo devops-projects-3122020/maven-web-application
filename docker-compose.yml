@@ -1,7 +1,7 @@
 version: '3.1'
 services:
  webapp:
-  image: gkdevops/dockerrepository:11
+  image: gkdevops/dockerrepository:buildnumber
   restart: always
   container_name: mvnwebapp
   ports:
