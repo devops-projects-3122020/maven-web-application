@@ -1,0 +1,45 @@
+node {
+    def buildNumber= BUILD_NUMBER
+    def mavenHome= tool name: "maven3.6.3", type:"maven"
+    stage('Git pull'){
+        git url: "https://github.com/gkdevopstraining/spring-boot-mongo-docker.git" , branch:"feature"
+    }
+
+    stage ("Maven build"){
+        sh "${mavenHome}/bin/mvn clean package"
+    }
+    
+    stage ("Docker build"){
+        sh "docker build -t registry/spring-app-docker:${buildNumber} ."
+    }
+    
+    stage ("Docker push"){
+        withCredentials([string(credentialsId: 'docker_hub_password', variable: 'docker_hub_password')]) {
+        sh "docker login -u <user_name> -p ${docker_hub_password}"
+        }
+        sh "docker push <registry/spring-app-docker>:${buildNumber}"
+    }
+    
+    stage ("Updating compose file with buildNumber"){
+        sh "sed -i s/imageversion/${buildNumber}/ docker-compose-base.yml"
+    }
+    
+    stage ("scp and build containers in dev") {
+        sshagent(['docker_build_host']) {
+        sh "ssh -o StrictHostKeyChecking=no <user_name>@<ip> mkdir /home/<user_name>/docker_compose || true"
+        sh "scp -o StrictHostKeyChecking=no /var/lib/jenkins/workspace/spring-app-docker/docker-compose-*.yml <user_name>@<ip>:/home/docker_compose/"
+        sh "ssh -o StrictHostKeyChecking=no <user_name>@<ip> docker-compose -f /home/<user_name>/docker_compose/docker-compose-base.yml -f /home/docker_compose/docker-compose-dev.yml down || true"
+        sh "ssh -o StrictHostKeyChecking=no <user_name>@<ip> docker-compose -f /home/<user_name>/docker_compose/docker-compose-base.yml -f /home/docker_compose/docker-compose-dev.yml up -d"
+            
+        }
+    }
+        
+    stage ("scp and build containers in qa") {
+        sshagent(['qa_docker-host']) {
+        sh "ssh -o StrictHostKeyChecking=no <username>@<ip> mkdir /home/<user_name>/docker_compose || true"
+        sh "scp -o StrictHostKeyChecking=no /var/lib/jenkins/workspace/spring-app-docker/docker-compose-*.yml user_name@IP:/home/docker_compose/"
+        sh "ssh -o StrictHostKeyChecking=no <username>@<ip> docker-compose -f /home/docker_compose/docker-compose-base.yml -f /home/docker_compose/docker-compose-qa.yml down || true"
+        sh "ssh -o StrictHostKeyChecking=no <username>@<ip> docker-compose -f /home/docker_compose/docker-compose-base.yml -f /home/docker_compose/docker-compose-qa.yml up -d"
+        }
+    }
+  }
